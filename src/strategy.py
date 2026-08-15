@@ -28,10 +28,14 @@ class Cycle:
     invested: float
     proceeds: float
     exit_reason: str  # "target" or "stop_loss"
+    seed: float  # total portfolio seed at the time, for portfolio-relative return
 
     @property
     def return_pct(self) -> float:
-        return (self.proceeds - self.invested) / self.invested * 100
+        """Return relative to the total seed (principal), not just the capital
+        this cycle deployed — e.g. a cycle that used 10% of seed and made
+        9.44% on that slice shows here as 0.94%."""
+        return (self.proceeds - self.invested) / self.seed * 100
 
 
 class DipBuyStrategy:
@@ -95,7 +99,7 @@ class DipBuyStrategy:
         proceeds = self.btc * price * (1 - FEE_PCT)
         self.cash += proceeds
         self.cycles.append(
-            Cycle(self.cycle_entry_time, time, self.buy_count, self.cycle_invested, proceeds, reason)
+            Cycle(self.cycle_entry_time, time, self.buy_count, self.cycle_invested, proceeds, reason, self.seed)
         )
         self.trades.append(Trade("sell", price, time, self.buy_count))
         self.btc = 0.0
