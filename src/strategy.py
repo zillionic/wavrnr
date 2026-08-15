@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
-REBUY_DROP_PCT = 0.005
+REBUY_DROP_PCT = 0.01
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
 STOP_LOSS_PCT = 0.03  # off the first buy price, not the day's high
 MAX_BUYS = 10
