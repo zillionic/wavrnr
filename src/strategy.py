@@ -7,7 +7,7 @@ FIRST_DROP_PCT = 0.015
 REBUY_DROP_PCT = 0.01
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
 STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
-MAX_BUYS = 3  # a 4th rebuy signal triggers a stop-loss instead of another buy
+MAX_BUYS = 10
 SEED_FRACTION_FIRST_BUY = 0.20
 SEED_FRACTION_REBUY = 0.10
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
@@ -69,13 +69,8 @@ class DipBuyStrategy:
             self._sell(price, time, reason="stop_loss")
             return
 
-        if price > self.last_buy_price * (1 - REBUY_DROP_PCT):
-            return
-
-        if self.buy_count < MAX_BUYS:
+        if self.buy_count < MAX_BUYS and price <= self.last_buy_price * (1 - REBUY_DROP_PCT):
             self._buy(price, time)
-        else:
-            self._sell(price, time, reason="stop_loss")
 
     def equity(self, mark_price: float) -> float:
         return self.cash + self.btc * mark_price
