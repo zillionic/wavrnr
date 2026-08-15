@@ -5,7 +5,8 @@ from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
 REBUY_DROP_PCT = 0.01
-TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
+TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price — arms the trailing exit
+TRAILING_STOP_PCT = 0.003  # pullback from the peak reached after arming, that triggers the sell
 STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
 MAX_BUYS = 10
 SEED_FRACTION_FIRST_BUY = 0.20
@@ -51,6 +52,7 @@ class DipBuyStrategy:
         self.buy_count = 0
         self.cycle_entry_time = None
         self.cycle_invested = 0.0
+        self.trailing_peak = None
         self.trades: list[Trade] = []
         self.cycles: list[Cycle] = []
 
@@ -61,8 +63,14 @@ class DipBuyStrategy:
                 self._buy(price, time)
             return
 
+        if self.trailing_peak is not None:
+            self.trailing_peak = max(self.trailing_peak, price)
+            if price <= self.trailing_peak * (1 - TRAILING_STOP_PCT):
+                self._sell(price, time, reason="target")
+            return
+
         if price >= self.day_high * (1 + TAKE_PROFIT_PCT):
-            self._sell(price, time, reason="target")
+            self.trailing_peak = price
             return
 
         if price <= self.day_high * (1 - STOP_LOSS_PCT):
@@ -111,6 +119,7 @@ class DipBuyStrategy:
         self.buy_count = 0
         self.first_buy_price = None
         self.last_buy_price = None
+        self.trailing_peak = None
         self.day_high = None
         self.day_high_date = None
 
