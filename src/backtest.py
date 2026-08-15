@@ -32,9 +32,11 @@ def main() -> None:
         print(f"손절로 종료된 사이클: {len(stop_losses)}건")
 
     if strategy.buy_count > 0:
+        avg_price = strategy.cycle_invested / strategy.btc
+        target_price = avg_price * 1.02
         print(
             f"\n현재 미청산 포지션: {strategy.buy_count}회 매수, "
-            f"마지막 매수가 {strategy.last_buy_price}, 목표 매도가(전고점) {strategy.target_high}"
+            f"마지막 매수가 {strategy.last_buy_price}, 평단가 {avg_price:.2f}, 목표 매도가(+2%) {target_price:.2f}"
         )
 
     if last_price is not None:

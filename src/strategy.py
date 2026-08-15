@@ -5,6 +5,7 @@ from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
 REBUY_DROP_PCT = 0.01
+TAKE_PROFIT_PCT = 0.02
 STOP_LOSS_PCT = 0.04
 MAX_BUYS = 10
 SEED_FRACTION_PER_BUY = 0.10
@@ -39,7 +40,6 @@ class DipBuyStrategy:
         self.btc = 0.0
         self.day_high = None
         self.day_high_date = None
-        self.target_high = None
         self.first_buy_price = None
         self.last_buy_price = None
         self.buy_count = 0
@@ -55,7 +55,8 @@ class DipBuyStrategy:
                 self._buy(price, time)
             return
 
-        if price >= self.target_high:
+        avg_price = self.cycle_invested / self.btc
+        if price >= avg_price * (1 + TAKE_PROFIT_PCT):
             self._sell(price, time, reason="target")
             return
 
@@ -79,7 +80,6 @@ class DipBuyStrategy:
 
     def _buy(self, price: float, time: datetime) -> None:
         if self.buy_count == 0:
-            self.target_high = self.day_high
             self.first_buy_price = price
             self.cycle_entry_time = time
             self.cycle_invested = 0.0
@@ -102,7 +102,6 @@ class DipBuyStrategy:
         self.buy_count = 0
         self.first_buy_price = None
         self.last_buy_price = None
-        self.target_high = None
         self.day_high = None
         self.day_high_date = None
 
