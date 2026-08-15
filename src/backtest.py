@@ -3,11 +3,12 @@ from datetime import datetime, timezone
 from candles import fetch_history
 from strategy import TAKE_PROFIT_PCT, DipBuyStrategy
 
-DAYS = 365 * 3
+DAYS = 180
+TIMEFRAME = "1m"
 
 
 def main() -> None:
-    candles = fetch_history(timeframe="5m", days=DAYS)
+    candles = fetch_history(timeframe=TIMEFRAME, days=DAYS)
     strategy = DipBuyStrategy(seed=1.0)
 
     last_price = None
@@ -19,7 +20,7 @@ def main() -> None:
     cycles = strategy.cycles
     wins = [c for c in cycles if c.return_pct > 0]
 
-    print(f"백테스트 기간: 최근 {DAYS}일 ({len(candles)}개 5분봉)")
+    print(f"백테스트 기간: 최근 {DAYS}일 ({len(candles)}개 {TIMEFRAME}봉)")
     print(f"완료된 사이클: {len(cycles)}건")
 
     if cycles:
