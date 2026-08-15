@@ -4,6 +4,9 @@ from datetime import datetime, timedelta, timezone
 from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
+WIDE_FIRST_DROP_PCT = 0.03  # entry threshold while in "downtrend" mode
+LOSS_STREAK_TO_WIDEN = 3  # this many stop-losses in a row switches to WIDE_FIRST_DROP_PCT
+WIN_STREAK_TO_NORMALIZE = 2  # this many wins in a row switches back to FIRST_DROP_PCT
 REBUY_DROP_PCT = 0.01
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
 STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
@@ -52,6 +55,9 @@ class DipBuyStrategy:
         self.cycle_entry_time = None
         self.cycle_invested = 0.0
         self.cooldown_until = None
+        self.entry_drop_pct = FIRST_DROP_PCT
+        self.consecutive_losses = 0
+        self.consecutive_wins = 0
         self.trades: list[Trade] = []
         self.cycles: list[Cycle] = []
 
@@ -60,7 +66,7 @@ class DipBuyStrategy:
             self._update_day_high(price, time)
             if self.cooldown_until is not None and time < self.cooldown_until:
                 return
-            if self.day_high is not None and price <= self.day_high * (1 - FIRST_DROP_PCT):
+            if self.day_high is not None and price <= self.day_high * (1 - self.entry_drop_pct):
                 self._buy(price, time)
             return
 
@@ -112,6 +118,15 @@ class DipBuyStrategy:
         self.trades.append(Trade("sell", price, time, self.buy_count))
         if reason == "stop_loss":
             self.cooldown_until = time + COOLDOWN
+            self.consecutive_losses += 1
+            self.consecutive_wins = 0
+            if self.consecutive_losses >= LOSS_STREAK_TO_WIDEN:
+                self.entry_drop_pct = WIDE_FIRST_DROP_PCT
+        else:
+            self.consecutive_wins += 1
+            self.consecutive_losses = 0
+            if self.consecutive_wins >= WIN_STREAK_TO_NORMALIZE:
+                self.entry_drop_pct = FIRST_DROP_PCT
         self.btc = 0.0
         self.buy_count = 0
         self.first_buy_price = None

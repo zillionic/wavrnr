@@ -4,11 +4,14 @@ from datetime import datetime, timezone
 from strategy import (
     COOLDOWN,
     FIRST_DROP_PCT,
+    LOSS_STREAK_TO_WIDEN,
     MAX_BUYS,
     REBUY_DROP_PCT,
     SEED_INCREMENT_PCT,
     STOP_LOSS_PCT,
     TAKE_PROFIT_PCT,
+    WIDE_FIRST_DROP_PCT,
+    WIN_STREAK_TO_NORMALIZE,
 )
 
 LEVERAGE = 5
@@ -46,6 +49,9 @@ class LeveragedStrategy:
         self.fees_paid = 0.0
         self.funding_paid = 0.0
         self.cooldown_until = None
+        self.entry_drop_pct = FIRST_DROP_PCT
+        self.consecutive_losses = 0
+        self.consecutive_wins = 0
         self.cycles: list[Cycle] = []
 
     @property
@@ -61,7 +67,7 @@ class LeveragedStrategy:
             self._update_day_high(price, time)
             if self.cooldown_until is not None and time < self.cooldown_until:
                 return
-            if self.day_high is not None and price <= self.day_high * (1 - FIRST_DROP_PCT):
+            if self.day_high is not None and price <= self.day_high * (1 - self.entry_drop_pct):
                 self._buy(price, time)
             return
 
@@ -144,6 +150,15 @@ class LeveragedStrategy:
         )
         if reason in ("stop_loss", "liquidated"):
             self.cooldown_until = time + COOLDOWN
+            self.consecutive_losses += 1
+            self.consecutive_wins = 0
+            if self.consecutive_losses >= LOSS_STREAK_TO_WIDEN:
+                self.entry_drop_pct = WIDE_FIRST_DROP_PCT
+        else:
+            self.consecutive_wins += 1
+            self.consecutive_losses = 0
+            if self.consecutive_wins >= WIN_STREAK_TO_NORMALIZE:
+                self.entry_drop_pct = FIRST_DROP_PCT
 
         self.buy_count = 0
         self.last_buy_price = None
