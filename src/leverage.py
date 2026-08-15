@@ -11,6 +11,7 @@ from strategy import (
     STOP_LOSS_PCT,
     TAKE_PROFIT_PCT,
     WIDE_FIRST_DROP_PCT,
+    WIDE_STOP_LOSS_PCT,
     WIN_STREAK_TO_NORMALIZE,
 )
 
@@ -50,6 +51,7 @@ class LeveragedStrategy:
         self.funding_paid = 0.0
         self.cooldown_until = None
         self.entry_drop_pct = FIRST_DROP_PCT
+        self.stop_loss_pct = STOP_LOSS_PCT
         self.consecutive_losses = 0
         self.consecutive_wins = 0
         self.cycles: list[Cycle] = []
@@ -79,7 +81,7 @@ class LeveragedStrategy:
             self._close(price, time, reason="target")
             return
 
-        if price <= self.day_high * (1 - STOP_LOSS_PCT):
+        if price <= self.day_high * (1 - self.stop_loss_pct):
             self._close(price, time, reason="stop_loss")
             return
 
@@ -154,11 +156,13 @@ class LeveragedStrategy:
             self.consecutive_wins = 0
             if self.consecutive_losses >= LOSS_STREAK_TO_WIDEN:
                 self.entry_drop_pct = WIDE_FIRST_DROP_PCT
+                self.stop_loss_pct = WIDE_STOP_LOSS_PCT
         else:
             self.consecutive_wins += 1
             self.consecutive_losses = 0
             if self.consecutive_wins >= WIN_STREAK_TO_NORMALIZE:
                 self.entry_drop_pct = FIRST_DROP_PCT
+                self.stop_loss_pct = STOP_LOSS_PCT
 
         self.buy_count = 0
         self.last_buy_price = None
