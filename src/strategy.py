@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
-WIDE_FIRST_DROP_PCT = 0.03  # entry threshold while in "downtrend" mode
+WIDE_FIRST_DROP_PCT = 0.05  # entry threshold while in "downtrend" mode
 LOSS_STREAK_TO_WIDEN = 3  # this many stop-losses in a row switches to WIDE_FIRST_DROP_PCT
 WIN_STREAK_TO_NORMALIZE = 2  # this many wins in a row switches back to FIRST_DROP_PCT
 REBUY_DROP_PCT = 0.01
