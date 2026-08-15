@@ -1,11 +1,29 @@
 from datetime import datetime, timezone
 
-from exchange import get_exchange
+from exchange import get_exchange, get_public_exchange
 
 
 def fetch_candles(symbol="BTC/USDT", timeframe="5m", limit=10):
     exchange = get_exchange()
     return exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+
+
+def fetch_history(symbol="BTC/USDT", timeframe="5m", days=30):
+    """Paginate through mainnet public candles to cover a multi-day range."""
+    exchange = get_public_exchange()
+    timeframe_ms = exchange.parse_timeframe(timeframe) * 1000
+    since = exchange.milliseconds() - days * 24 * 60 * 60 * 1000
+
+    all_candles = []
+    while True:
+        batch = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=since, limit=1000)
+        if not batch:
+            break
+        all_candles += batch
+        since = batch[-1][0] + timeframe_ms
+        if len(batch) < 1000:
+            break
+    return all_candles
 
 
 def main() -> None:

@@ -17,14 +17,33 @@ class Trade:
     buy_count: int
 
 
+@dataclass
+class Cycle:
+    entry_time: datetime
+    exit_time: datetime
+    num_buys: int
+    invested: float
+    proceeds: float
+
+    @property
+    def return_pct(self) -> float:
+        return (self.proceeds - self.invested) / self.invested * 100
+
+
 class DipBuyStrategy:
-    def __init__(self):
+    def __init__(self, seed: float = 1.0):
+        self.seed = seed
+        self.cash = seed
+        self.btc = 0.0
         self.day_high = None
         self.day_high_date = None
         self.target_high = None
         self.last_buy_price = None
         self.buy_count = 0
+        self.cycle_entry_time = None
+        self.cycle_invested = 0.0
         self.trades: list[Trade] = []
+        self.cycles: list[Cycle] = []
 
     def step(self, price: float, time: datetime) -> None:
         if self.buy_count == 0:
@@ -40,6 +59,9 @@ class DipBuyStrategy:
         if self.buy_count < MAX_BUYS and price <= self.last_buy_price * (1 - REBUY_DROP_PCT):
             self._buy(price, time)
 
+    def equity(self, mark_price: float) -> float:
+        return self.cash + self.btc * mark_price
+
     def _update_day_high(self, price: float, time: datetime) -> None:
         date = time.date()
         if self.day_high_date != date:
@@ -51,12 +73,22 @@ class DipBuyStrategy:
     def _buy(self, price: float, time: datetime) -> None:
         if self.buy_count == 0:
             self.target_high = self.day_high
+            self.cycle_entry_time = time
+            self.cycle_invested = 0.0
+        amount = self.seed * SEED_FRACTION_PER_BUY
+        self.cash -= amount
+        self.btc += amount / price
+        self.cycle_invested += amount
         self.buy_count += 1
         self.last_buy_price = price
         self.trades.append(Trade("buy", price, time, self.buy_count))
 
     def _sell(self, price: float, time: datetime) -> None:
+        proceeds = self.btc * price
+        self.cash += proceeds
+        self.cycles.append(Cycle(self.cycle_entry_time, time, self.buy_count, self.cycle_invested, proceeds))
         self.trades.append(Trade("sell", price, time, self.buy_count))
+        self.btc = 0.0
         self.buy_count = 0
         self.last_buy_price = None
         self.target_high = None
