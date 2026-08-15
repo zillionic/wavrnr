@@ -6,16 +6,19 @@ from leverage import LEVERAGE, TAKER_FEE_PCT, LeveragedStrategy
 DAYS = 180
 TIMEFRAME = "1m"
 SEED_KRW = 1_000_000
+KRW_PER_USD = 1417  # approximate USD/KRW rate (Aug 2026) — price data below is USDT-denominated
+SEED_USDT = SEED_KRW / KRW_PER_USD
 
 
-def krw(amount: float) -> str:
-    return f"{amount:,.0f}원"
+def krw(amount_usdt: float) -> str:
+    """amount_usdt is in the strategy's native unit (USDT-equivalent); convert to KRW for display."""
+    return f"{amount_usdt * KRW_PER_USD:,.0f}원"
 
 
 def main() -> None:
     candles = fetch_history(timeframe=TIMEFRAME, days=DAYS)
     funding_events = fetch_funding_history(days=DAYS)
-    strategy = LeveragedStrategy(seed=SEED_KRW)
+    strategy = LeveragedStrategy(seed=SEED_USDT)
 
     funding_idx = 0
     last_price = None
@@ -35,7 +38,7 @@ def main() -> None:
 
     print(f"백테스트 기간: 최근 {DAYS}일 ({len(candles)}개 {TIMEFRAME}봉), 레버리지 {LEVERAGE}배")
     print(f"선물 수수료 {TAKER_FEE_PCT * 100:.3f}%/건, 펀딩비 {len(funding_events)}건 실데이터 반영")
-    print(f"시작 자금: {krw(SEED_KRW)}")
+    print(f"시작 자금: {krw(SEED_USDT)} (환율 {KRW_PER_USD}원/달러 가정)")
     print(f"완료된 사이클: {len(cycles)}건")
 
     if cycles:
@@ -54,12 +57,12 @@ def main() -> None:
         )
 
     final_equity = strategy.equity(last_price) if last_price is not None else strategy.cash
-    total_return = (final_equity - SEED_KRW) / SEED_KRW * 100
-    print(f"\n최종 잔고: {krw(final_equity)}  (누적 손익: {krw(final_equity - SEED_KRW)}, {total_return:+.2f}%)")
+    total_return = (final_equity - SEED_USDT) / SEED_USDT * 100
+    print(f"\n최종 잔고: {krw(final_equity)}  (누적 손익: {krw(final_equity - SEED_USDT)}, {total_return:+.2f}%)")
 
     if cycles:
         print("\n사이클별 상세 (손익금액 / 누적잔고):")
-        running_balance = SEED_KRW
+        running_balance = SEED_USDT
         for c in cycles:
             running_balance += c.pnl
             entry = c.entry_time.strftime("%Y-%m-%d %H:%M")
