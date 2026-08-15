@@ -5,12 +5,17 @@ from leverage import LEVERAGE, TAKER_FEE_PCT, LeveragedStrategy
 
 DAYS = 180
 TIMEFRAME = "1m"
+SEED_KRW = 1_000_000
+
+
+def krw(amount: float) -> str:
+    return f"{amount:,.0f}원"
 
 
 def main() -> None:
     candles = fetch_history(timeframe=TIMEFRAME, days=DAYS)
     funding_events = fetch_funding_history(days=DAYS)
-    strategy = LeveragedStrategy(seed=1.0)
+    strategy = LeveragedStrategy(seed=SEED_KRW)
 
     funding_idx = 0
     last_price = None
@@ -30,6 +35,7 @@ def main() -> None:
 
     print(f"백테스트 기간: 최근 {DAYS}일 ({len(candles)}개 {TIMEFRAME}봉), 레버리지 {LEVERAGE}배")
     print(f"선물 수수료 {TAKER_FEE_PCT * 100:.3f}%/건, 펀딩비 {len(funding_events)}건 실데이터 반영")
+    print(f"시작 자금: {krw(SEED_KRW)}")
     print(f"완료된 사이클: {len(cycles)}건")
 
     if cycles:
@@ -47,18 +53,22 @@ def main() -> None:
             f"평단가 {strategy.avg_entry_price:.2f}, 청산가(추정) {strategy.liquidation_price:.2f}"
         )
 
-    if last_price is not None:
-        final_equity = strategy.equity(last_price)
-        total_return = (final_equity - strategy.seed) / strategy.seed * 100
-        print(f"\n전체 기간 수익률(미실현 포함): {total_return:+.2f}%")
+    final_equity = strategy.equity(last_price) if last_price is not None else strategy.cash
+    total_return = (final_equity - SEED_KRW) / SEED_KRW * 100
+    print(f"\n최종 잔고: {krw(final_equity)}  (누적 손익: {krw(final_equity - SEED_KRW)}, {total_return:+.2f}%)")
 
     if cycles:
-        print("\n사이클별 상세:")
+        print("\n사이클별 상세 (손익금액 / 누적잔고):")
+        running_balance = SEED_KRW
         for c in cycles:
+            running_balance += c.pnl
             entry = c.entry_time.strftime("%Y-%m-%d %H:%M")
             exit_ = c.exit_time.strftime("%Y-%m-%d %H:%M")
             tag = {"stop_loss": " [손절]", "liquidated": " [청산!]"}.get(c.exit_reason, "")
-            print(f"  {entry} ~ {exit_}  매수 {c.num_buys}회  수익률 {c.return_pct:+.2f}%{tag}")
+            print(
+                f"  {entry} ~ {exit_}  매수 {c.num_buys}회  {c.return_pct:+6.2f}%  "
+                f"{krw(c.pnl):>14}  ->  잔고 {krw(running_balance)}{tag}"
+            )
 
 
 if __name__ == "__main__":
