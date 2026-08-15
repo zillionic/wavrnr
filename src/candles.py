@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from exchange import get_exchange
 
 
-def fetch_candles(symbol="BTC/USDT", timeframe="1h", limit=10):
+def fetch_candles(symbol="BTC/USDT", timeframe="5m", limit=10):
     exchange = get_exchange()
     return exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
 
