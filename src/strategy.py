@@ -9,7 +9,8 @@ LOSS_STREAK_TO_WIDEN = 3  # this many stop-losses in a row switches to WIDE_FIRS
 WIN_STREAK_TO_NORMALIZE = 2  # this many wins in a row switches back to FIRST_DROP_PCT
 REBUY_DROP_PCT = 0.01
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
-STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price — unchanged in downtrend mode
+STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
+WIDE_STOP_LOSS_PCT = 0.065  # stop-loss in downtrend mode — keeps the same 3.5pp gap as normal mode
 MAX_BUYS = 10
 SEED_INCREMENT_PCT = 0.10  # buy N uses N * this fraction of seed (10%, 20%, 30%, ...)
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
@@ -56,6 +57,7 @@ class DipBuyStrategy:
         self.cycle_invested = 0.0
         self.cooldown_until = None
         self.entry_drop_pct = FIRST_DROP_PCT
+        self.stop_loss_pct = STOP_LOSS_PCT
         self.consecutive_losses = 0
         self.consecutive_wins = 0
         self.trades: list[Trade] = []
@@ -74,7 +76,7 @@ class DipBuyStrategy:
             self._sell(price, time, reason="target")
             return
 
-        if price <= self.day_high * (1 - STOP_LOSS_PCT):
+        if price <= self.day_high * (1 - self.stop_loss_pct):
             self._sell(price, time, reason="stop_loss")
             return
 
@@ -122,11 +124,13 @@ class DipBuyStrategy:
             self.consecutive_wins = 0
             if self.consecutive_losses >= LOSS_STREAK_TO_WIDEN:
                 self.entry_drop_pct = WIDE_FIRST_DROP_PCT
+                self.stop_loss_pct = WIDE_STOP_LOSS_PCT
         else:
             self.consecutive_wins += 1
             self.consecutive_losses = 0
             if self.consecutive_wins >= WIN_STREAK_TO_NORMALIZE:
                 self.entry_drop_pct = FIRST_DROP_PCT
+                self.stop_loss_pct = STOP_LOSS_PCT
         self.btc = 0.0
         self.buy_count = 0
         self.first_buy_price = None
