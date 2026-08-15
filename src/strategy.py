@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from candles import fetch_candles
 
@@ -11,6 +11,7 @@ MAX_BUYS = 10
 SEED_FRACTION_FIRST_BUY = 0.20
 SEED_FRACTION_REBUY = 0.10
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
+COOLDOWN = timedelta(hours=4)  # no re-entry for this long after a stop-loss
 
 
 @dataclass
@@ -51,12 +52,15 @@ class DipBuyStrategy:
         self.buy_count = 0
         self.cycle_entry_time = None
         self.cycle_invested = 0.0
+        self.cooldown_until = None
         self.trades: list[Trade] = []
         self.cycles: list[Cycle] = []
 
     def step(self, price: float, time: datetime) -> None:
         if self.buy_count == 0:
             self._update_day_high(price, time)
+            if self.cooldown_until is not None and time < self.cooldown_until:
+                return
             if self.day_high is not None and price <= self.day_high * (1 - FIRST_DROP_PCT):
                 self._buy(price, time)
             return
@@ -107,6 +111,8 @@ class DipBuyStrategy:
             Cycle(self.cycle_entry_time, time, self.buy_count, self.cycle_invested, proceeds, reason, self.seed)
         )
         self.trades.append(Trade("sell", price, time, self.buy_count))
+        if reason == "stop_loss":
+            self.cooldown_until = time + COOLDOWN
         self.btc = 0.0
         self.buy_count = 0
         self.first_buy_price = None
