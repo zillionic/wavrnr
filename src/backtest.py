@@ -25,9 +25,11 @@ def main() -> None:
     if cycles:
         avg_return = sum(c.return_pct for c in cycles) / len(cycles)
         max_buys = max(c.num_buys for c in cycles)
+        stop_losses = [c for c in cycles if c.exit_reason == "stop_loss"]
         print(f"승률: {len(wins)}/{len(cycles)} ({len(wins) / len(cycles) * 100:.0f}%)")
         print(f"사이클당 평균 수익률: {avg_return:+.2f}%")
         print(f"사이클 내 최대 매수 횟수: {max_buys}회")
+        print(f"손절로 종료된 사이클: {len(stop_losses)}건")
 
     if strategy.buy_count > 0:
         print(
@@ -45,7 +47,8 @@ def main() -> None:
         for c in cycles:
             entry = c.entry_time.strftime("%Y-%m-%d %H:%M")
             exit_ = c.exit_time.strftime("%Y-%m-%d %H:%M")
-            print(f"  {entry} ~ {exit_}  매수 {c.num_buys}회  수익률 {c.return_pct:+.2f}%")
+            tag = " [손절]" if c.exit_reason == "stop_loss" else ""
+            print(f"  {entry} ~ {exit_}  매수 {c.num_buys}회  수익률 {c.return_pct:+.2f}%{tag}")
 
 
 if __name__ == "__main__":

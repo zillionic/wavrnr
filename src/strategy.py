@@ -5,6 +5,7 @@ from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
 REBUY_DROP_PCT = 0.025
+STOP_LOSS_PCT = 0.025
 MAX_BUYS = 10
 SEED_FRACTION_PER_BUY = 0.10
 
@@ -24,6 +25,7 @@ class Cycle:
     num_buys: int
     invested: float
     proceeds: float
+    exit_reason: str  # "target" or "stop_loss"
 
     @property
     def return_pct(self) -> float:
@@ -53,11 +55,16 @@ class DipBuyStrategy:
             return
 
         if price >= self.target_high:
-            self._sell(price, time)
+            self._sell(price, time, reason="target")
             return
 
-        if self.buy_count < MAX_BUYS and price <= self.last_buy_price * (1 - REBUY_DROP_PCT):
-            self._buy(price, time)
+        if self.buy_count < MAX_BUYS:
+            if price <= self.last_buy_price * (1 - REBUY_DROP_PCT):
+                self._buy(price, time)
+            return
+
+        if price <= self.last_buy_price * (1 - STOP_LOSS_PCT):
+            self._sell(price, time, reason="stop_loss")
 
     def equity(self, mark_price: float) -> float:
         return self.cash + self.btc * mark_price
@@ -83,10 +90,12 @@ class DipBuyStrategy:
         self.last_buy_price = price
         self.trades.append(Trade("buy", price, time, self.buy_count))
 
-    def _sell(self, price: float, time: datetime) -> None:
+    def _sell(self, price: float, time: datetime, reason: str) -> None:
         proceeds = self.btc * price
         self.cash += proceeds
-        self.cycles.append(Cycle(self.cycle_entry_time, time, self.buy_count, self.cycle_invested, proceeds))
+        self.cycles.append(
+            Cycle(self.cycle_entry_time, time, self.buy_count, self.cycle_invested, proceeds, reason)
+        )
         self.trades.append(Trade("sell", price, time, self.buy_count))
         self.btc = 0.0
         self.buy_count = 0
