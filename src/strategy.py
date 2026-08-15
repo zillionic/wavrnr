@@ -6,9 +6,9 @@ from candles import fetch_candles
 FIRST_DROP_PCT = 0.015
 REBUY_DROP_PCT = 0.005
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
-STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
+STOP_LOSS_PCT = 0.03  # off the first buy price, not the day's high
 MAX_BUYS = 10
-SEED_FRACTION_FIRST_BUY = 0.30
+SEED_FRACTION_FIRST_BUY = 0.40
 SEED_FRACTION_REBUY = 0.10
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
 COOLDOWN = timedelta(hours=4)  # no re-entry for this long after a stop-loss
@@ -69,7 +69,7 @@ class DipBuyStrategy:
             self._sell(price, time, reason="target")
             return
 
-        if price <= self.day_high * (1 - STOP_LOSS_PCT):
+        if price <= self.first_buy_price * (1 - STOP_LOSS_PCT):
             self._sell(price, time, reason="stop_loss")
             return
 
