@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 from candles import fetch_funding_history, fetch_history
 from leverage import LEVERAGE, TAKER_FEE_PCT, LeveragedStrategy
 
-DAYS = 180
-TIMEFRAME = "1m"
+DAYS = 365 * 5
+TIMEFRAME = "5m"  # 1m would mean 2,600+ requests for 5 years — too slow
 SEED_KRW = 1_000_000
 KRW_PER_USD = 1417  # approximate USD/KRW rate (Aug 2026) — price data below is USDT-denominated
 SEED_USDT = SEED_KRW / KRW_PER_USD
