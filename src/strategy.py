@@ -51,7 +51,6 @@ class DipBuyStrategy:
         self.buy_count = 0
         self.cycle_entry_time = None
         self.cycle_invested = 0.0
-        self.cycle_seed = None  # balance at this cycle's first buy — the 100% basis for its sizing
         self.cooldown_until = None
         self.trades: list[Trade] = []
         self.cycles: list[Cycle] = []
@@ -92,9 +91,8 @@ class DipBuyStrategy:
             self.first_buy_price = price
             self.cycle_entry_time = time
             self.cycle_invested = 0.0
-            self.cycle_seed = self.cash
         buy_number = self.buy_count + 1
-        amount = self.cycle_seed * SEED_INCREMENT_PCT * buy_number
+        amount = self.seed * SEED_INCREMENT_PCT * buy_number
         if amount > self.cash + 1e-9:
             return
         amount = min(amount, self.cash)

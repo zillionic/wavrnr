@@ -45,7 +45,6 @@ class LeveragedStrategy:
         self.position_btc = 0.0
         self.fees_paid = 0.0
         self.funding_paid = 0.0
-        self.cycle_seed = None  # balance at this cycle's first buy — the 100% basis for its sizing
         self.cooldown_until = None
         self.cycles: list[Cycle] = []
 
@@ -111,10 +110,9 @@ class LeveragedStrategy:
             self.position_btc = 0.0
             self.fees_paid = 0.0
             self.funding_paid = 0.0
-            self.cycle_seed = self.cash
 
         buy_number = self.buy_count + 1
-        margin_amount = self.cycle_seed * SEED_INCREMENT_PCT * buy_number
+        margin_amount = self.seed * SEED_INCREMENT_PCT * buy_number
         if margin_amount > self.cash + 1e-9:
             return
         margin_amount = min(margin_amount, self.cash)
