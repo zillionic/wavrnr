@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from candles import fetch_history
 from strategy import TAKE_PROFIT_PCT, DipBuyStrategy
 
-DAYS = 180
+DAYS = 365
 
 
 def main() -> None:
