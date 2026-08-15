@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 
 from candles import fetch_candles
 
-FIRST_DROP_PCT = 0.015
+FIRST_DROP_PCT = 0.03
 REBUY_DROP_PCT = 0.01
-TAKE_PROFIT_PCT = 0.03
+TAKE_PROFIT_PCT = 0.06  # off the most recent (lowest) buy price, not the average cost
 STOP_LOSS_PCT = 0.04
 MAX_BUYS = 10
 SEED_FRACTION_PER_BUY = 0.10
@@ -56,8 +56,7 @@ class DipBuyStrategy:
                 self._buy(price, time)
             return
 
-        avg_price = self.cycle_invested / self.btc
-        if price >= avg_price * (1 + TAKE_PROFIT_PCT):
+        if price >= self.last_buy_price * (1 + TAKE_PROFIT_PCT):
             self._sell(price, time, reason="target")
             return
 
