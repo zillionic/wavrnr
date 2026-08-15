@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from candles import fetch_history
-from strategy import TAKE_PROFIT_PCT, DipBuyStrategy
+from strategy import STOP_LOSS_PCT, TAKE_PROFIT_PCT, DipBuyStrategy
 
 DAYS = 180
 TIMEFRAME = "1m"
@@ -34,11 +34,13 @@ def main() -> None:
 
     if strategy.buy_count > 0:
         avg_price = strategy.cycle_invested / strategy.btc
-        target_price = strategy.first_buy_price * (1 + TAKE_PROFIT_PCT)
+        target_price = strategy.day_high * (1 + TAKE_PROFIT_PCT)
+        stop_price = strategy.day_high * (1 - STOP_LOSS_PCT)
         print(
             f"\n현재 미청산 포지션: {strategy.buy_count}회 매수, "
-            f"마지막 매수가 {strategy.last_buy_price}, 첫 매수가 {strategy.first_buy_price}, 평단가 {avg_price:.2f}, "
-            f"목표 매도가(첫 매수가 +{TAKE_PROFIT_PCT * 100:.0f}%) {target_price:.2f}"
+            f"마지막 매수가 {strategy.last_buy_price}, 평단가 {avg_price:.2f}, 진입 시점 고점 {strategy.day_high}, "
+            f"목표 매도가(고점 +{TAKE_PROFIT_PCT * 100:.0f}%) {target_price:.2f}, "
+            f"손절가(고점 -{STOP_LOSS_PCT * 100:.0f}%) {stop_price:.2f}"
         )
 
     if last_price is not None:

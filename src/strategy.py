@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 
 from candles import fetch_candles
 
-FIRST_DROP_PCT = 0.03
+FIRST_DROP_PCT = 0.015
 REBUY_DROP_PCT = 0.01
-TAKE_PROFIT_PCT = 0.02  # off the first buy price (entry), not the average cost or last buy
-STOP_LOSS_PCT = 0.04
+TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
+STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
 MAX_BUYS = 10
-SEED_FRACTION_PER_BUY = 0.10
+SEED_FRACTION_FIRST_BUY = 0.20
+SEED_FRACTION_REBUY = 0.10
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
 
 
@@ -60,11 +61,11 @@ class DipBuyStrategy:
                 self._buy(price, time)
             return
 
-        if price >= self.first_buy_price * (1 + TAKE_PROFIT_PCT):
+        if price >= self.day_high * (1 + TAKE_PROFIT_PCT):
             self._sell(price, time, reason="target")
             return
 
-        if price <= self.first_buy_price * (1 - STOP_LOSS_PCT):
+        if price <= self.day_high * (1 - STOP_LOSS_PCT):
             self._sell(price, time, reason="stop_loss")
             return
 
@@ -87,7 +88,11 @@ class DipBuyStrategy:
             self.first_buy_price = price
             self.cycle_entry_time = time
             self.cycle_invested = 0.0
-        amount = self.seed * SEED_FRACTION_PER_BUY
+            amount = self.seed * SEED_FRACTION_FIRST_BUY
+        else:
+            amount = self.seed * SEED_FRACTION_REBUY
+        if amount > self.cash:
+            return
         self.cash -= amount
         self.btc += (amount / price) * (1 - FEE_PCT)
         self.cycle_invested += amount
@@ -127,7 +132,7 @@ def main() -> None:
         return
 
     for trade in trades:
-        seed_used = trade.buy_count * SEED_FRACTION_PER_BUY * 100
+        seed_used = (SEED_FRACTION_FIRST_BUY + (trade.buy_count - 1) * SEED_FRACTION_REBUY) * 100
         time_str = trade.time.strftime("%Y-%m-%d %H:%M")
         if trade.action == "buy":
             print(f"{time_str}  BUY  #{trade.buy_count:>2}  price={trade.price:<12} (누적 시드 {seed_used:.0f}%)")
