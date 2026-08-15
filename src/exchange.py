@@ -17,3 +17,9 @@ def get_public_exchange() -> ccxt.binance:
     testnet is skipped here because its history is shallow and gets
     periodically wiped, which makes it unfit for backtesting."""
     return ccxt.binance()
+
+
+def get_futures_exchange() -> ccxt.binance:
+    """Mainnet USDS-M futures, no API key. Used for public funding-rate
+    history — price candles still come from get_public_exchange()."""
+    return ccxt.binance({"options": {"defaultType": "future"}})

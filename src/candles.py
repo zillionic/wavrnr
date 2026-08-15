@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from exchange import get_exchange, get_public_exchange
+from exchange import get_exchange, get_futures_exchange, get_public_exchange
 
 
 def fetch_candles(symbol="BTC/USDT", timeframe="5m", limit=10):
@@ -24,6 +24,25 @@ def fetch_history(symbol="BTC/USDT", timeframe="5m", days=30):
         if len(batch) < 1000:
             break
     return all_candles
+
+
+def fetch_funding_history(symbol="BTC/USDT:USDT", days=30):
+    """Paginate through real historical funding rates for a USDT-margined
+    perpetual (charged/paid roughly every 8h). Returns ccxt's unified
+    [{timestamp, fundingRate, ...}, ...] sorted oldest first."""
+    exchange = get_futures_exchange()
+    since = exchange.milliseconds() - days * 24 * 60 * 60 * 1000
+
+    all_rates = []
+    while True:
+        batch = exchange.fetch_funding_rate_history(symbol, since=since, limit=1000)
+        if not batch:
+            break
+        all_rates += batch
+        since = batch[-1]["timestamp"] + 1
+        if len(batch) < 1000:
+            break
+    return all_rates
 
 
 def main() -> None:
