@@ -4,11 +4,11 @@ from datetime import datetime, timedelta, timezone
 from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
-REBUY_DROP_PCT = 0.01
+REBUY_DROP_PCT = 0.005
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
 STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
 MAX_BUYS = 10
-SEED_FRACTION_FIRST_BUY = 0.20
+SEED_FRACTION_FIRST_BUY = 0.30
 SEED_FRACTION_REBUY = 0.10
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
 COOLDOWN = timedelta(hours=4)  # no re-entry for this long after a stop-loss
