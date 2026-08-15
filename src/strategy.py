@@ -9,6 +9,7 @@ TAKE_PROFIT_PCT = 0.02
 STOP_LOSS_PCT = 0.04
 MAX_BUYS = 10
 SEED_FRACTION_PER_BUY = 0.10
+FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
 
 
 @dataclass
@@ -85,14 +86,14 @@ class DipBuyStrategy:
             self.cycle_invested = 0.0
         amount = self.seed * SEED_FRACTION_PER_BUY
         self.cash -= amount
-        self.btc += amount / price
+        self.btc += (amount / price) * (1 - FEE_PCT)
         self.cycle_invested += amount
         self.buy_count += 1
         self.last_buy_price = price
         self.trades.append(Trade("buy", price, time, self.buy_count))
 
     def _sell(self, price: float, time: datetime, reason: str) -> None:
-        proceeds = self.btc * price
+        proceeds = self.btc * price * (1 - FEE_PCT)
         self.cash += proceeds
         self.cycles.append(
             Cycle(self.cycle_entry_time, time, self.buy_count, self.cycle_invested, proceeds, reason)
