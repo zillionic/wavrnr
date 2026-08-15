@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from candles import fetch_candles
 
 FIRST_DROP_PCT = 0.015
-REBUY_DROP_PCT = 0.025
-STOP_LOSS_PCT = 0.025
+REBUY_DROP_PCT = 0.01
+STOP_LOSS_PCT = 0.04
 MAX_BUYS = 10
 SEED_FRACTION_PER_BUY = 0.10
 
@@ -40,6 +40,7 @@ class DipBuyStrategy:
         self.day_high = None
         self.day_high_date = None
         self.target_high = None
+        self.first_buy_price = None
         self.last_buy_price = None
         self.buy_count = 0
         self.cycle_entry_time = None
@@ -58,13 +59,12 @@ class DipBuyStrategy:
             self._sell(price, time, reason="target")
             return
 
-        if self.buy_count < MAX_BUYS:
-            if price <= self.last_buy_price * (1 - REBUY_DROP_PCT):
-                self._buy(price, time)
+        if price <= self.first_buy_price * (1 - STOP_LOSS_PCT):
+            self._sell(price, time, reason="stop_loss")
             return
 
-        if price <= self.last_buy_price * (1 - STOP_LOSS_PCT):
-            self._sell(price, time, reason="stop_loss")
+        if self.buy_count < MAX_BUYS and price <= self.last_buy_price * (1 - REBUY_DROP_PCT):
+            self._buy(price, time)
 
     def equity(self, mark_price: float) -> float:
         return self.cash + self.btc * mark_price
@@ -80,6 +80,7 @@ class DipBuyStrategy:
     def _buy(self, price: float, time: datetime) -> None:
         if self.buy_count == 0:
             self.target_high = self.day_high
+            self.first_buy_price = price
             self.cycle_entry_time = time
             self.cycle_invested = 0.0
         amount = self.seed * SEED_FRACTION_PER_BUY
@@ -99,6 +100,7 @@ class DipBuyStrategy:
         self.trades.append(Trade("sell", price, time, self.buy_count))
         self.btc = 0.0
         self.buy_count = 0
+        self.first_buy_price = None
         self.last_buy_price = None
         self.target_high = None
         self.day_high = None
