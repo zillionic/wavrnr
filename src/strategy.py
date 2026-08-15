@@ -8,8 +8,7 @@ REBUY_DROP_PCT = 0.01
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
 STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price
 MAX_BUYS = 10
-SEED_FRACTION_FIRST_BUY = 0.40
-SEED_FRACTION_REBUY = 0.10
+SEED_INCREMENT_PCT = 0.10  # buy N uses N * this fraction of seed (10%, 20%, 30%, ...)
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
 COOLDOWN = timedelta(hours=4)  # no re-entry for this long after a stop-loss
 
@@ -92,11 +91,11 @@ class DipBuyStrategy:
             self.first_buy_price = price
             self.cycle_entry_time = time
             self.cycle_invested = 0.0
-            amount = self.seed * SEED_FRACTION_FIRST_BUY
-        else:
-            amount = self.seed * SEED_FRACTION_REBUY
-        if amount > self.cash:
+        buy_number = self.buy_count + 1
+        amount = self.seed * SEED_INCREMENT_PCT * buy_number
+        if amount > self.cash + 1e-9:
             return
+        amount = min(amount, self.cash)
         self.cash -= amount
         self.btc += (amount / price) * (1 - FEE_PCT)
         self.cycle_invested += amount
@@ -138,7 +137,8 @@ def main() -> None:
         return
 
     for trade in trades:
-        seed_used = (SEED_FRACTION_FIRST_BUY + (trade.buy_count - 1) * SEED_FRACTION_REBUY) * 100
+        n = trade.buy_count
+        seed_used = SEED_INCREMENT_PCT * 100 * n * (n + 1) / 2
         time_str = trade.time.strftime("%Y-%m-%d %H:%M")
         if trade.action == "buy":
             print(f"{time_str}  BUY  #{trade.buy_count:>2}  price={trade.price:<12} (누적 시드 {seed_used:.0f}%)")
