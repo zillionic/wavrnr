@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from candles import fetch_history
 from strategy import DipBuyStrategy
 
-DAYS = 30
+DAYS = 180
 
 
 def main() -> None:
