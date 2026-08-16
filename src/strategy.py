@@ -3,13 +3,14 @@ from datetime import datetime, timedelta, timezone
 
 from candles import fetch_candles
 
-FIRST_DROP_PCT = 0.015
-WIDE_FIRST_DROP_PCT = 0.03  # entry threshold while in "downtrend" mode
+FIRST_DROP_PCT = 0.02  # raised from 0.015 — filters out shallow noise-level dips
+WIDE_FIRST_DROP_PCT = 0.035  # entry threshold while in "downtrend" mode — kept a 1.5pp gap over FIRST_DROP_PCT, same as the original 1.5%/3.0% split
 LOSS_STREAK_TO_WIDEN = 3  # this many stop-losses in a row switches to WIDE_FIRST_DROP_PCT
 WIN_STREAK_TO_NORMALIZE = 2  # this many wins in a row switches back to FIRST_DROP_PCT
 REBUY_DROP_PCT = 0.01
 TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
-STOP_LOSS_PCT = 0.05  # off the day's high, not the buy price — never widens, even in downtrend mode
+STOP_LOSS_PCT = 0.04  # lowered from 0.05 — tighter gaps outperformed wider ones all day
+# never widens, even in downtrend mode
 MAX_BUYS = 10
 SEED_INCREMENT_PCT = 0.10  # buy N uses N * this fraction of seed (10%, 20%, 30%, ...)
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
