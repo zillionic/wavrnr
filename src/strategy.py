@@ -8,9 +8,15 @@ WIDE_FIRST_DROP_PCT = 0.035  # entry threshold while in "downtrend" mode — kep
 LOSS_STREAK_TO_WIDEN = 3  # this many stop-losses in a row switches to WIDE_FIRST_DROP_PCT
 WIN_STREAK_TO_NORMALIZE = 2  # this many wins in a row switches back to FIRST_DROP_PCT
 REBUY_DROP_PCT = 0.01
-TAKE_PROFIT_PCT = 0.01  # off the day's high, not the buy price
-STOP_LOSS_PCT = 0.04  # lowered from 0.05 — tighter gaps outperformed wider ones all day
-# never widens, even in downtrend mode
+# Both exits are now measured off the position's own average entry price
+# (weighted across all tranches), not the day's high. Anchoring to day_high
+# meant the take-profit needed a full round-trip back above the high (a big
+# bounce) while the stop-loss, after a few rebuys, was often just one more
+# small drop away — a structurally unfavorable payoff regardless of how the
+# two percentages were tuned. Reward is set wider than risk here (2.5% vs
+# 1.5%) so a cycle only needs to win a bit less than half the time to break even.
+TAKE_PROFIT_PCT = 0.025  # off the position's average entry price
+STOP_LOSS_PCT = 0.015  # off the position's average entry price — narrows as rebuys pull the average down, capping how far a losing cycle can run
 MAX_BUYS = 10
 SEED_INCREMENT_PCT = 0.10  # buy N uses N * this fraction of seed (10%, 20%, 30%, ...)
 FEE_PCT = 0.001  # Binance spot default taker fee, no BNB discount
@@ -71,16 +77,22 @@ class DipBuyStrategy:
                 self._buy(price, time)
             return
 
-        if price >= self.day_high * (1 + TAKE_PROFIT_PCT):
+        if price >= self.avg_entry_price * (1 + TAKE_PROFIT_PCT):
             self._sell(price, time, reason="target")
             return
 
-        if price <= self.day_high * (1 - STOP_LOSS_PCT):
+        if price <= self.avg_entry_price * (1 - STOP_LOSS_PCT):
             self._sell(price, time, reason="stop_loss")
             return
 
         if self.buy_count < MAX_BUYS and price <= self.last_buy_price * (1 - REBUY_DROP_PCT):
             self._buy(price, time)
+
+    @property
+    def avg_entry_price(self) -> float:
+        """Weighted average cost basis across all tranches in the current
+        cycle, including the fee drag already baked into self.btc."""
+        return self.cycle_invested / self.btc
 
     def equity(self, mark_price: float) -> float:
         return self.cash + self.btc * mark_price

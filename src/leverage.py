@@ -75,11 +75,11 @@ class LeveragedStrategy:
             self._close(price, time, reason="liquidated", total_loss=True)
             return
 
-        if price >= self.day_high * (1 + TAKE_PROFIT_PCT):
+        if price >= self.avg_entry_price * (1 + TAKE_PROFIT_PCT):
             self._close(price, time, reason="target")
             return
 
-        if price <= self.day_high * (1 - STOP_LOSS_PCT):
+        if price <= self.avg_entry_price * (1 - STOP_LOSS_PCT):
             self._close(price, time, reason="stop_loss")
             return
 
