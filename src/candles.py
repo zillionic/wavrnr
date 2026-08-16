@@ -12,7 +12,9 @@ def fetch_history(symbol="BTC/USDT", timeframe="5m", days=30):
     """Paginate through mainnet public candles to cover a multi-day range."""
     exchange = get_public_exchange()
     timeframe_ms = exchange.parse_timeframe(timeframe) * 1000
-    since = exchange.milliseconds() - days * 24 * 60 * 60 * 1000
+    start = exchange.milliseconds() - days * 24 * 60 * 60 * 1000
+    since = start
+    total_span = exchange.milliseconds() - start
 
     all_candles = []
     while True:
@@ -21,8 +23,11 @@ def fetch_history(symbol="BTC/USDT", timeframe="5m", days=30):
             break
         all_candles += batch
         since = batch[-1][0] + timeframe_ms
+        progress = min((since - start) / total_span * 100, 100)
+        print(f"\r캔들 수신 중... {len(all_candles):,}개 ({progress:.0f}%)", end="", flush=True)
         if len(batch) < 1000:
             break
+    print()
     return all_candles
 
 
@@ -31,7 +36,9 @@ def fetch_funding_history(symbol="BTC/USDT:USDT", days=30):
     perpetual (charged/paid roughly every 8h). Returns ccxt's unified
     [{timestamp, fundingRate, ...}, ...] sorted oldest first."""
     exchange = get_futures_exchange()
-    since = exchange.milliseconds() - days * 24 * 60 * 60 * 1000
+    start = exchange.milliseconds() - days * 24 * 60 * 60 * 1000
+    since = start
+    total_span = exchange.milliseconds() - start
 
     all_rates = []
     while True:
@@ -40,8 +47,11 @@ def fetch_funding_history(symbol="BTC/USDT:USDT", days=30):
             break
         all_rates += batch
         since = batch[-1]["timestamp"] + 1
+        progress = min((since - start) / total_span * 100, 100)
+        print(f"\r펀딩비 수신 중... {len(all_rates):,}개 ({progress:.0f}%)", end="", flush=True)
         if len(batch) < 1000:
             break
+    print()
     return all_rates
 
 
